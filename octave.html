@@ -1,0 +1,173 @@
+<!--
+    docker run -it --rm -p 3000:80 --name web -v ~/Documents/js-audio:/usr/share/nginx/html nginx
+    http://127.0.0.1:3000/octave.html
+-->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=0.7, maximum-scale=0.7, user-scalable=no" />
+    </head>
+
+    <style>
+        /* https://stackoverflow.com/questions/826782/how-to-disable-text-selection-highlighting */
+        body {
+          -webkit-touch-callout: none; /* iOS Safari */
+            -webkit-user-select: none; /* Safari */
+             -khtml-user-select: none; /* Konqueror HTML */
+               -moz-user-select: none; /* Old versions of Firefox */
+                -ms-user-select: none; /* Internet Explorer/Edge */
+                    user-select: none; /* Non-prefixed version, currently
+                                          supported by Chrome, Edge, Opera and Firefox */
+        }
+
+        button.key {
+            background-color: #eee;
+            border-radius: 7px;
+            height: 400px;
+            width: 60px;
+            margin: 12px;
+        }
+        button.key.black {
+            background-color: #666;
+            position: relative;
+            top: -100px;
+            height: 200px;
+            width: 40px;
+            margin: -30px;
+        }
+        button.key.animated {
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+        	background-size: 400% 400%;
+        	animation: gradient 0.5s ease infinite;
+        }
+
+        @keyframes gradient {
+            0%   { background-position: 0%   50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0%   50%; }
+        }
+    </style>
+
+    <h1>Всратонино <a class="toggleConf">⚙</a></h1>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <button class="key">&nbsp;</button>
+    <button class="key black">&nbsp;</button>
+    <button class="key">&nbsp;</button>
+    <button class="key black">&nbsp;</button>
+    <button class="key" style="margin-right: 6px;">&nbsp;</button><!--
+ --><button class="key" style="margin-left: 6px;">&nbsp;</button>
+    <button class="key black">&nbsp;</button>
+    <button class="key">&nbsp;</button>
+    <button class="key black">&nbsp;</button>
+    <button class="key">&nbsp;</button>
+    <button class="key black">&nbsp;</button>
+    <button class="key">&nbsp;</button>
+
+    <button class="key">&nbsp;</button>
+    <button class="key black">&nbsp;</button>
+    <button class="key">&nbsp;</button>
+    <button class="key black">&nbsp;</button>
+    <button class="key" style="margin-right: 6px;">&nbsp;</button><!--
+ --><button class="key" style="margin-left: 6px;">&nbsp;</button>
+    <button class="key black">&nbsp;</button>
+    <button class="key">&nbsp;</button>
+    <button class="key black">&nbsp;</button>
+    <button class="key">&nbsp;</button>
+    <button class="key black">&nbsp;</button>
+    <button class="key">&nbsp;</button>
+
+    <center>
+    <div id="conf" style="display:none; width:60%; border:1px solid #666; border-radius: 7px;">
+        <div class="toggleConf" style="text-align: right;">✖&nbsp;</div>
+        <table>
+            <tr>
+                <td>Wave type</td>
+                <td><select id="waveType">
+                    <option value="square">square</option>
+                    <option value="triangle">triangle</option>
+                    <option value="sine">sine</option>
+                    <option value="sawtooth">sawtooth</option></select></td>
+            </tr><tr>
+                <td>Key ramp down</td>
+                <td><select id="keyRampDown">
+                    <option value="linearRampToValueAtTime">linear</option>
+                    <option value="exponentialRampToValueAtTime">exponential</option></select></td>
+            </tr><tr>
+                <td>Note duration</td>
+                <td><input type="range" id="noteDuration" min="0" max="11" step="0.1" value=2></td>
+            </tr>
+        </table>
+    </div>
+    </center>
+
+    <script>
+        let waveType = 'square';
+        let keyRampDownFn = 'linearRampToValueAtTime';
+        let noteDuration = 2;
+
+        // create web audio api context
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // sound
+        function playFreq(audioCtx, freq, duration) {
+            const gainNode = audioCtx.createGain();
+
+            gainNode.gain[ keyRampDownFn ](0.000001, audioCtx.currentTime+duration); // exponentialRampToValueAtTime doesn't like 0
+
+            const osc = audioCtx.createOscillator();
+            osc.type = waveType;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime); // value in hertz
+
+            osc.connect(gainNode).connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        // vfx
+        function addClass(el, duration) {
+            if (!el.dataset.animationTimer) {
+                el.classList.add("animated");
+                el.dataset.animationTimer = setTimeout(function() {
+                    el.classList.remove("animated"); el.dataset.animationTimer='';
+                }, duration*1000);
+            } else {
+                clearTimeout(el.dataset.animationTimer);
+                el.dataset.animationTimer = setTimeout(function() {
+                    el.classList.remove("animated"); el.dataset.animationTimer='';
+                }, duration*1000);
+            }
+        }
+
+        // keys and frequences
+        document.querySelectorAll('button.key').forEach((btn, i) => {
+            const freq = 2**((i+40-49)/12)*440;
+            btn.onmousedown = function() { playFreq(audioCtx, freq, noteDuration); addClass(btn, noteDuration) };
+            btn.ontouchstart = function() { playFreq(audioCtx, freq, noteDuration); addClass(btn, noteDuration) };
+        });
+
+        // config
+        function toggleConf() {
+            const el = document.querySelector('#conf');
+            el.style.display = el.style.display == 'none' ? 'block' : 'none';
+        }
+        document.querySelectorAll('.toggleConf').forEach(el => el.onclick = toggleConf);
+
+        const waveTypeControl = document.querySelector('#waveType');
+        waveTypeControl.addEventListener('change', function() {
+            waveType = this.value;
+        }, false);
+
+        const keyRampDownControl = document.querySelector('#keyRampDown');
+        keyRampDownControl.addEventListener('change', function() {
+            keyRampDownFn = this.value;
+        }, false);
+
+        const noteDurationControl = document.querySelector('#noteDuration');
+        noteDurationControl.addEventListener('change', function() {
+            noteDuration = Number(this.value);
+        }, false);
+
+    </script>
+</html>
+
