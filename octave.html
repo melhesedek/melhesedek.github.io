@@ -40,16 +40,31 @@
         	background-size: 400% 400%;
         	animation: gradient 0.5s ease infinite;
         }
-
         @keyframes gradient {
             0%   { background-position: 0%   50%; }
             50%  { background-position: 100% 50%; }
             100% { background-position: 0%   50%; }
         }
+
+        /* https://codepen.io/giana/pen/BZaGyP */
+        #sequencer table button {
+            transition: 0.1s;
+            background: none;
+            border: 2px solid #e2e2e2;
+            line-height: 1;
+            margin: 0.5em;
+            padding: 1em 2em;
+        }
+        #sequencer table button.flash {
+          animation: pulse 0.1s;
+          box-shadow: 0 0 0 2em transparent;
+        }
+        @keyframes pulse {
+          0% { box-shadow: 0 0 0 0 pink; }
+        }
     </style>
 
-    <h1>Всратонино <a class="toggleConf">⚙</a></h1>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <h1>Всратонино <a class="toggleConf">⚙</a> <a class="toggleSequencer">⮔</a></h1>
     <button class="key">&nbsp;</button>
     <button class="key black">&nbsp;</button>
     <button class="key">&nbsp;</button>
@@ -76,8 +91,7 @@
     <button class="key black">&nbsp;</button>
     <button class="key">&nbsp;</button>
 
-    <center>
-    <div id="conf" style="display:none; width:60%; border:1px solid #666; border-radius: 7px;">
+    <div id="conf" style="display:none; border:1px solid #666; border-radius: 7px;">
         <table>
             <tr>
                 <td>Wave type</td>
@@ -97,7 +111,29 @@
             </tr>
         </table>
     </div>
-    </center>
+    <br/>
+    <div id="sequencer" style="display:none; border:1px solid #666; border-radius: 7px;">
+        <input id="seqBpm" type="number" min="60" max="600" step="0.1" value="140" placeholder="bpm">
+        <button id="seqStartStop">start</button>
+        <table>
+            <script>
+                let html = '<thead><tr>';
+                for (let cols = 8; cols > 0; --cols) { html += '<th onclick="tick(this.cellIndex)">⭕</th>'; }
+                html += '</tr></thead><tbody>';
+
+                for (let rows = 4; rows > 0; --rows) {
+                    html += '<tr>'
+                    for (let cols = 8; cols > 0; --cols) {
+                        html += '  <td><button onClick="selectKey(this); return false;">+</button></td>';
+                    }
+                    html += '</tr>'
+                }
+                html += '</tbody>';
+
+                document.write(html);
+            </script>
+        </table>
+    </div>
 
     <script>
         let waveType = 'square';
@@ -166,6 +202,83 @@
         noteDurationControl.addEventListener('change', function() {
             noteDuration = Number(this.value);
         }, false);
+
+        // sequencer
+        function toggleSequencer() {
+            const el = document.querySelector('#sequencer');
+            el.style.display = el.style.display == 'none' ? 'block' : 'none';
+        }
+        document.querySelectorAll('.toggleSequencer').forEach(el => el.onclick = toggleSequencer);
+
+        let siid;
+        function startSequence(beats=8, bpm=120) {
+            let beatNo=0;
+            siid = setInterval(function() { tick(beatNo++%8) }, 60/bpm*1000);
+        }
+        function stopSequence() {
+            clearInterval(siid)
+        }
+        document.querySelector('#seqStartStop').onclick=function() {
+            const bpmInput=document.querySelector('#seqBpm');
+            const startStopBtn=document.querySelector('#seqStartStop');
+            if (startStopBtn.innerText === 'start') {
+                if (!bpmInput.value) { bpmInput.value = 140; } // fix empty input
+                const bpm = bpmInput.value;
+                bpmInput.disabled=true;
+                startSequence(8, bpm);
+                startStopBtn.innerText = 'stop';
+            } else {
+                stopSequence();
+                bpmInput.disabled=false;
+                startStopBtn.innerText = 'start';
+            }
+
+        }
+
+        function tick(beatNo=0) {
+            // trigger event on all buttons in column
+            document
+                .querySelectorAll('#sequencer table tbody>tr>td:nth-child('+(beatNo+1)+') button')
+                .forEach(btn => btn.ondblclick?btn.ondblclick():null);
+
+            // vfx
+            document
+                .querySelectorAll('#sequencer table thead>tr>th')
+                .forEach(th => th.innerText='⭕');
+            document
+                .querySelector('#sequencer table thead>tr>th:nth-child('+(beatNo+1)+')')
+                .innerText='🔴';
+        }
+        function selectKey(btn) {
+            // clear key
+            if (btn.innerText === '×') {
+                btn.innerText='+';
+                btn.ondblclick=null;
+                return;
+            }
+
+            btn.disabled=true;
+            const callback=function(e) {
+                console.log(e);
+                if (e.srcElement.classList.contains('key')) {
+                    // set an event on btn that will be triggered each tick
+                    const key=e.srcElement;
+                    btn.ondblclick=function() {
+                        btn.classList.remove('flash');
+                        btn.offsetWidth; // magic, see https://stackoverflow.com/a/63561659/912621
+                        btn.classList.add('flash');
+                        key.onmousedown();
+                    }
+
+                    btn.disabled=false;
+                    btn.innerText='×';
+
+                    // destroy this event handler
+                    document.body.removeEventListener('click', callback);
+                }
+            };
+            document.body.addEventListener('click', callback);
+        }
 
     </script>
 </html>
