@@ -55,6 +55,9 @@
             margin: 0.5em;
             padding: 1em 2em;
         }
+        #sequencer table button.charged {
+            border-color: #c0c0c0;
+        }
         #sequencer table button.flash {
           animation: pulse 0.1s;
           box-shadow: 0 0 0 2em transparent;
@@ -254,6 +257,7 @@
             if (btn.innerText === '×') {
                 btn.innerText='+';
                 btn.ondblclick=null;
+                btn.classList.remove('charged');
                 return;
             }
 
@@ -272,6 +276,7 @@
 
                     btn.disabled=false;
                     btn.innerText='×';
+                    btn.classList.add('charged');
 
                     // destroy this event handler
                     document.body.removeEventListener('click', callback);
