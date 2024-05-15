@@ -120,13 +120,17 @@
         <button id="seqStartStop">start</button>
         <table>
             <script>
+                const cols = 8;
+                const rows = 4;
                 let html = '<thead><tr>';
-                for (let cols = 8; cols > 0; --cols) { html += '<th onclick="tick(this.cellIndex)">⭕</th>'; }
+                for (let c = cols; c > 0; --c) {
+                    html += '<th onclick="tick(this.cellIndex)">⭕</th>';
+                }
                 html += '</tr></thead><tbody>';
 
-                for (let rows = 4; rows > 0; --rows) {
+                for (let r = rows; r > 0; --r) {
                     html += '<tr>'
-                    for (let cols = 8; cols > 0; --cols) {
+                    for (let c = cols; c > 0; --c) {
                         html += '  <td><button onClick="selectKey(this); return false;">+</button></td>';
                     }
                     html += '</tr>'
@@ -149,39 +153,34 @@
         // sound
         function playFreq(audioCtx, freq, duration) {
             const gainNode = audioCtx.createGain();
-
             gainNode.gain[ keyRampDownFn ](0.000001, audioCtx.currentTime+duration); // exponentialRampToValueAtTime doesn't like 0
 
             const osc = audioCtx.createOscillator();
             osc.type = waveType;
             osc.frequency.setValueAtTime(freq, audioCtx.currentTime); // value in hertz
-
             osc.connect(gainNode).connect(audioCtx.destination);
-
             osc.start();
             osc.stop(audioCtx.currentTime + duration);
         }
 
         // vfx
-        function addClass(el, duration) {
+        function addAnimatedClass(el, duration) {
             if (!el.dataset.animationTimer) {
                 el.classList.add("animated");
-                el.dataset.animationTimer = setTimeout(function() {
-                    el.classList.remove("animated"); el.dataset.animationTimer='';
-                }, duration*1000);
             } else {
                 clearTimeout(el.dataset.animationTimer);
-                el.dataset.animationTimer = setTimeout(function() {
-                    el.classList.remove("animated"); el.dataset.animationTimer='';
-                }, duration*1000);
             }
+            el.dataset.animationTimer = setTimeout(function() {
+                el.classList.remove("animated");
+                el.dataset.animationTimer='';
+            }, duration*1000);
         }
 
         // keys and frequences
         document.querySelectorAll('button.key').forEach((btn, i) => {
             const freq = 2**((i+40-49)/12)*440;
-            btn.onmousedown = function() { playFreq(audioCtx, freq, noteDuration); addClass(btn, noteDuration) };
-            btn.ontouchstart = function() { playFreq(audioCtx, freq, noteDuration); addClass(btn, noteDuration) };
+            btn.onmousedown = function() { playFreq(audioCtx, freq, noteDuration); addAnimatedClass(btn, noteDuration) };
+            btn.ontouchstart = function() { playFreq(audioCtx, freq, noteDuration); addAnimatedClass(btn, noteDuration) };
         });
 
         // config
