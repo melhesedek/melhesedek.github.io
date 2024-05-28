@@ -181,6 +181,7 @@
             const freq = 2**((i+40-49)/12)*440;
             btn.onmousedown = function() { playFreq(audioCtx, freq, noteDuration); addAnimatedClass(btn, noteDuration) };
             btn.ontouchstart = function() { playFreq(audioCtx, freq, noteDuration); addAnimatedClass(btn, noteDuration) };
+            btn.dataset.freq = freq;
         });
 
         // config
@@ -251,12 +252,17 @@
                 .querySelector('#sequencer table thead>tr>th:nth-child('+(beatNo+1)+')')
                 .innerText='🔴';
         }
+        function freqToColor(freq) {
+            const H = freq / 1500 * 360 + 100;
+            return 'hsl(' + H + ' 60% 60%)';
+        }
         function selectKey(btn) {
             // clear key
             if (btn.innerText === '×') {
                 btn.innerText='+';
                 btn.ondblclick=null;
                 btn.classList.remove('charged');
+                btn.style.backgroundColor='';
                 return;
             }
 
@@ -276,6 +282,7 @@
                     btn.disabled=false;
                     btn.innerText='×';
                     btn.classList.add('charged');
+                    btn.style.backgroundColor=freqToColor(e.srcElement.dataset.freq);
 
                     // destroy this event handler
                     document.body.removeEventListener('click', callback);
